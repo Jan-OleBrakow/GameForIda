@@ -1,0 +1,517 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameForIda Wiki</title>
+<meta name="description" content="Alle Karten, Bösewichte, Bedrohungen, Orte und Helden des Spiels, gelesen aus seinen Daten.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* The game's own look (ui/ui_style.gd): ink panels, gold, parchment cards. */
+:root {
+	color-scheme: dark;
+	--ground: #121116;
+	--panel: #1b1a20;
+	--raised: #25232b;
+	--line: #3a3540;
+	--brass: #b08a4e;
+	--gold: #e2bf6e;
+	--text: #f3ecdc;
+	--muted: #b9ae98;
+	--faint: #7d7468;
+	--paper: #efe4cc;
+	--ink: #2b2118;
+	--vermilion: #c0392b;
+	--spell: #4a72a8;
+	--item: #6b8f49;
+	--ally: #b4473a;
+	--villain: #8f3a45;
+	--dark: #a48ad0;
+	--place: #5f9a8c;
+	--hero: #d4ac55;
+	--bolt: #f0c840;
+	--coin: #d4ac55;
+	--heart: #e0607e;
+	--display: "Shippori Mincho", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+	--body: "Zen Kaku Gothic New", "Segoe UI", system-ui, sans-serif;
+	--mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+	--gutter: 16px;
+	--header: 0px;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ground); color: var(--text); }
+body { margin: 0; font: 15px/1.55 var(--body); }
+table { font: inherit; color: inherit; border-collapse: collapse; }
+a { color: var(--gold); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible {
+	outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 2px;
+}
+h1, h2, h3 { font-weight: 400; text-wrap: balance; margin: 0; }
+
+/* Header */
+.top {
+	position: sticky; top: 0; z-index: 5;
+	background: var(--ground); border-bottom: 1px solid var(--line); padding-inline: var(--gutter);
+}
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding-block: 12px 8px; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { font: 700 24px/1 var(--display); color: var(--gold); }
+.brand .stamp { font: 11px/1.3 var(--mono); color: var(--faint); }
+.search { flex: 1 1 260px; display: flex; justify-content: flex-end; }
+.search input {
+	width: 100%; max-width: 360px; background: var(--panel); color: var(--text);
+	border: 1px solid var(--line); border-radius: 4px; padding: 7px 10px; font: inherit;
+}
+.search input::placeholder { color: var(--faint); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--gutter)); padding-inline: var(--gutter); }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs a {
+	flex: none; font: 700 15px/1 var(--display); color: var(--muted);
+	padding: 10px 12px 11px; border-bottom: 2px solid transparent; text-decoration: none;
+}
+nav.tabs a:hover { color: var(--text); }
+nav.tabs a[aria-current="page"] { color: var(--gold); border-bottom-color: var(--gold); }
+nav.tabs a .n { font: 11px/1 var(--mono); color: var(--faint); margin-left: 5px; }
+
+/* Two panes */
+main {
+	display: grid; grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+	padding-inline: var(--gutter); max-width: 1440px; margin: 0 auto;
+}
+.list {
+	border-right: 1px solid var(--line); padding: 14px 14px 40px 0;
+	position: sticky; top: var(--header); align-self: start;
+	max-height: calc(100vh - var(--header)); overflow-y: auto;
+}
+.detail { padding: 22px 0 60px 28px; min-width: 0; }
+.back { display: none; font: 700 14px/1 var(--display); margin-bottom: 16px; }
+@media (max-width: 760px) {
+	main { grid-template-columns: minmax(0, 1fr); }
+	.list { border-right: 0; position: static; max-height: none; padding-right: 0; }
+	.detail { padding-left: 0; }
+	body.reading .list { display: none; }
+	body:not(.reading) .detail { display: none; }
+	body.reading .back { display: inline-block; }
+}
+
+/* List */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.filters button {
+	font: 12px/1 var(--body); color: var(--muted); background: var(--panel);
+	border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; cursor: pointer;
+}
+.filters button[aria-pressed="true"] { color: var(--ground); background: var(--gold); border-color: var(--gold); }
+.count { font: 11px/1 var(--mono); color: var(--faint); margin: 0 0 8px 8px; }
+.group { font: 700 13px/1 var(--display); color: var(--brass); margin: 16px 0 6px; }
+.group:first-child { margin-top: 2px; }
+.row {
+	display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+	padding: 7px 8px; border-radius: 4px; color: var(--text); text-decoration: none;
+}
+.row:hover { background: var(--raised); text-decoration: none; }
+.row[aria-current="true"] { background: var(--raised); box-shadow: inset 2px 0 0 var(--gold); }
+.row .nm { font-weight: 500; line-height: 1.25; }
+.row .sub { font-size: 12px; color: var(--muted); line-height: 1.35; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.row .end { font: 12px/1.2 var(--mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.empty { color: var(--faint); padding: 12px 8px; }
+
+/* Pictures */
+.pic { display: block; object-fit: cover; border-radius: 4px; background: var(--raised); flex: none; }
+.pic.thumb { width: 42px; height: 42px; border: 1px solid var(--line); }
+.initial {
+	display: grid; place-items: center; font: 700 20px/1 var(--display); color: color-mix(in srgb, var(--c, var(--gold)) 85%, white);
+	background: color-mix(in srgb, var(--c, var(--gold)) 18%, var(--panel)); border: 1px solid color-mix(in srgb, var(--c, var(--gold)) 40%, transparent);
+}
+
+/* Chips, badges, resources */
+.chip {
+	display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--body); font-weight: 500;
+	padding: 4px 8px; border-radius: 999px; white-space: nowrap; text-decoration: none;
+	color: color-mix(in srgb, var(--c, var(--muted)) 80%, white);
+	background: color-mix(in srgb, var(--c, var(--muted)) 16%, transparent);
+	border: 1px solid color-mix(in srgb, var(--c, var(--muted)) 45%, transparent);
+}
+a.chip:hover { text-decoration: none; background: color-mix(in srgb, var(--c, var(--muted)) 28%, transparent); }
+.badge {
+	font: 700 12px/1 var(--display); color: var(--ground); background: var(--brass);
+	padding: 4px 7px 3px; border-radius: 3px; white-space: nowrap;
+}
+.badge.boss { background: var(--vermilion); color: var(--text); }
+.res { white-space: nowrap; font-weight: 500; }
+.res::before { display: inline-block; margin-right: 3px; }
+.res.bolt { color: var(--bolt); } .res.bolt::before { content: "⚡"; }
+.res.coin { color: var(--coin); } .res.coin::before { content: ""; width: .8em; height: .8em; border-radius: 50%; background: radial-gradient(circle, transparent 22%, var(--coin) 24%); vertical-align: -1px; }
+.res.heart { color: var(--heart); } .res.heart::before { content: "♥"; }
+.res.token { color: var(--vermilion); } .res.token::before { content: "●"; font-size: .8em; }
+
+/* Detail */
+.head { display: flex; flex-wrap: wrap; gap: 18px 26px; align-items: flex-end; margin-bottom: 18px; }
+.portrait { width: 196px; height: 196px; border: 1px solid var(--line); border-radius: 6px; flex: none; }
+.portrait.initial { font-size: 72px; }
+.title h2 { font: 700 34px/1.1 var(--display); color: var(--gold); }
+.title .kind { font: 700 13px/1 var(--display); color: var(--brass); margin-bottom: 8px; }
+.title .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; align-items: center; }
+.lede { max-width: 62ch; font-size: 17px; margin: 0 0 6px; }
+.lede p { margin: 0 0 4px; }
+.lede .opt { padding-left: 1.2em; }
+section.block { margin-top: 28px; }
+section.block > h3 {
+	font: 700 15px/1 var(--display); color: var(--brass);
+	padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 12px;
+}
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; max-width: 760px; }
+.fact { background: var(--panel); padding: 10px 12px; }
+.fact .k { font: 11px/1.2 var(--body); color: var(--faint); }
+.fact .v { font: 500 18px/1.25 var(--mono); color: var(--text); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.fact .v small { font: 12px/1.2 var(--body); color: var(--muted); }
+ul.plain { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; max-width: 760px; }
+ul.plain li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+.note { font-size: 13px; color: var(--muted); max-width: 66ch; }
+.file { font: 12px/1.4 var(--mono); color: var(--faint); margin-top: 34px; word-break: break-all; }
+.nav2 { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; max-width: 760px; font: 700 14px/1.2 var(--display); }
+
+.scroll { overflow-x: auto; max-width: 100%; }
+table.data { font-size: 14px; min-width: min(100%, 560px); }
+table.data th { font: 11px/1 var(--body); color: var(--faint); text-align: left; padding: 6px 14px 8px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.data td { padding: 7px 14px 7px 0; border-bottom: 1px solid color-mix(in srgb, var(--line) 60%, transparent); vertical-align: middle; }
+table.data td.n, table.data th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.who { display: inline-flex; align-items: center; gap: 8px; }
+.who .pic { width: 30px; height: 30px; }
+
+/* A card drawn like the game draws it (ui/card_view.gd) */
+.gcard {
+	width: 200px; flex: none; background: var(--paper); color: var(--ink); border-radius: 10px; overflow: hidden;
+	border: 3px solid var(--c); display: grid; grid-template-rows: auto auto auto 1fr auto; min-height: 300px;
+	box-shadow: 0 6px 18px rgba(0,0,0,.45);
+}
+.gcard .top2 { background: var(--c); color: var(--text); display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; font: 700 15px/1 var(--display); }
+.gcard .cost { display: inline-flex; align-items: center; gap: 4px; }
+.gcard .cost::before { content: ""; width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle, transparent 22%, var(--coin) 24%); box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+.gcard .nm { font: 700 15px/1.2 var(--display); text-align: center; padding: 6px 6px 4px; }
+.gcard img { width: calc(100% - 12px); margin: 0 6px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 3px; display: block; }
+.gcard .tx { font-size: 12.5px; line-height: 1.35; padding: 6px 8px; white-space: pre-line; }
+.gcard .ty { font-size: 11px; color: #7d6d58; text-align: center; padding: 4px 0 6px; }
+
+/* Galleries */
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+.tile {
+	display: grid; gap: 6px; padding: 8px; background: var(--panel); border: 1px solid var(--line);
+	border-radius: 6px; color: var(--text); text-decoration: none; align-content: start;
+}
+.tile:hover { border-color: var(--brass); text-decoration: none; }
+.tile .pic, .tile .initial { width: 100%; aspect-ratio: 1; height: auto; font-size: 40px; }
+.tile .nm { font-size: 13px; font-weight: 500; text-align: center; line-height: 1.25; }
+.tile .end { font: 11px/1 var(--mono); color: var(--muted); text-align: center; }
+.intro { max-width: 66ch; color: var(--muted); margin: 0 0 18px; }
+.intro h2 { font: 700 30px/1.1 var(--display); color: var(--gold); margin-bottom: 10px; }
+
+/* The map of Japan with the locations */
+.map { position: relative; max-width: 760px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.map img { display: block; width: 100%; }
+.map .pin {
+	position: absolute; transform: translate(-50%, -50%); display: grid; place-items: center;
+	width: 30px; height: 30px; border-radius: 50%; font: 700 15px/1 var(--display);
+	background: var(--paper); color: var(--ink); border: 2px solid var(--ink); text-decoration: none;
+}
+.map .pin.here { width: 42px; height: 42px; font-size: 19px; background: var(--ink); color: var(--gold); border: 3px solid var(--gold); box-shadow: 0 0 0 8px color-mix(in srgb, var(--gold) 35%, transparent); }
+.map .label {
+	position: absolute; transform: translate(-50%, 0); white-space: nowrap; font: 700 14px/1 var(--display); color: var(--ink);
+	text-shadow: 0 0 3px var(--paper), 0 0 6px var(--paper), 0 0 9px var(--paper); pointer-events: none;
+}
+.map svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+footer { padding: 30px var(--gutter) 40px; color: var(--faint); font-size: 12px; border-top: 1px solid var(--line); }
+footer code { font-family: var(--mono); color: var(--muted); word-break: break-all; }
+.missing { max-width: 60ch; margin: 60px auto; padding-inline: var(--gutter); }
+.missing h2 { font: 700 24px/1.2 var(--display); color: var(--gold); margin-bottom: 12px; }
+</style>
+
+<header class="top" id="top">
+	<div class="bar">
+		<div class="brand"><h1>GameForIda</h1><span class="stamp" id="stamp"></span></div>
+		<div class="search"><input id="q" type="search" placeholder="Alles durchsuchen  ( / )" autocomplete="off" aria-label="Wiki durchsuchen"></div>
+	</div>
+	<nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
+</header>
+<main id="main">
+	<aside class="list" id="list" aria-label="Einträge"></aside>
+	<article class="detail" id="detail" aria-live="polite"></article>
+</main>
+<footer>
+	Gelesen aus den Spieldaten von <code>tools/wiki/export_wiki.gd</code>. Zum Aktualisieren im Ordner <code>godot</code>
+	<code>python dev.py wiki</code> ausführen und die Seite neu laden. Die Texte sind genau die, die das Spiel zeigt.
+</footer>
+
+<script src="data.js" charset="utf-8"></script>
+<script>
+(() => {
+"use strict";
+const W = window.WIKI;
+if (!W) {
+	document.getElementById("main").innerHTML =
+		'<div class="missing"><h2>Noch keine Daten</h2><p>Das Wiki liest <code>data.js</code>, das der Exporter schreibt. Im Ordner <code>godot</code> <code>python dev.py wiki</code> ausführen, dann neu laden.</p></div>';
+	return;
+}
+
+// ---------- Indexes ----------
+const LISTS = { card: W.cards, villain: W.villains, darkart: W.dark_arts, place: W.locations, hero: W.classes, skill: W.proficiencies || [] };
+const BY = {};
+for (const [kind, list] of Object.entries(LISTS)) BY[kind] = new Map(list.map((e) => [e.id, e]));
+const SECTIONS = [
+	{ id: "karten", kind: "card", label: "Karten", intro: "Alle Karten: die aus dem Markt und die aus den Startdecks der Helden. Karten spielst du aus der Hand; im Markt kaufst du neue mit Münzen." },
+	{ id: "boesewichte", kind: "villain", label: "Bösewichte", intro: "Die Gegner. Bis zu " + W.setup.max_active_villains + " sind gleichzeitig im Spiel. Greife sie mit Blitzen an; wer keine Herzen mehr hat, ist besiegt." },
+	{ id: "bedrohungen", kind: "darkart", label: "Bedrohungen", intro: "Zu Beginn jedes Zuges werden Bedrohungskarten aufgedeckt. Wie viele, sagt der Ort, an dem ihr gerade kämpft." },
+	{ id: "orte", kind: "place", label: "Orte", intro: "Die Orte, die ihr verteidigt, in Spielreihenfolge. Ist ein Ort voll mit Kontrollmarkern, ist er verloren und ihr zieht zum nächsten. Geht der letzte verloren, gewinnen die Bösewichte." },
+	{ id: "helden", kind: "hero", label: "Helden", intro: "Die Heldenklassen, die man zu Beginn wählt: jede mit eigenen Herzen, Fähigkeiten und Startdeck." },
+	{ id: "fachgebiete", kind: "skill", label: "Fachgebiete", intro: "Nach dem Helden wählt jeder ein Fachgebiet: eine zusätzliche Fähigkeit für das ganze Spiel. Jedes Fachgebiet gibt es pro Spiel nur einmal." },
+];
+const SECTION_OF = Object.fromEntries(SECTIONS.map((s) => [s.kind, s]));
+const KIND_LABEL = { card: "Karte", villain: "Bösewicht", darkart: "Bedrohung", place: "Ort", hero: "Held", skill: "Fachgebiet" };
+const KIND_COLOR = { card: "var(--gold)", villain: "var(--villain)", darkart: "var(--dark)", place: "var(--place)", hero: "var(--hero)", skill: "var(--spell)" };
+const TYPE_COLOR = { spell: "var(--spell)", item: "var(--item)", ally: "var(--ally)" };
+const TYPE_ORDER = ["spell", "item", "ally"];
+const TYPE_PLURAL = { spell: "Sprüche", item: "Gegenstände", ally: "Verbündete" };
+const de = new Intl.Collator("de");
+const byName = (a, b) => de.compare(a.name, b.name);
+
+// ---------- Small renderers ----------
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+const href = (kind, id) => "#" + kind + "." + encodeURIComponent(id);
+const link = (kind, id, label) => {
+	const e = BY[kind] && BY[kind].get(id);
+	return e ? `<a href="${href(kind, id)}">${esc(label ?? e.name)}</a>` : esc(label ?? id);
+};
+// Game words get the game's icons: "2 Blitz", "1 Münze", "3 Herz", "Kontrollmarker".
+function prose(text) {
+	return esc(text)
+		.replace(/(\d+)\s+(Blitz(?:e|en)?)/g, '<span class="res bolt">$1 $2</span>')
+		.replace(/(\d+)\s+(Münzen?)/g, '<span class="res coin">$1 $2</span>')
+		.replace(/(\d+)\s+(Herz(?:en)?)/g, '<span class="res heart">$1 $2</span>')
+		.replace(/(\d+)\s+(Kontrollmarker[n]?)/g, '<span class="res token">$1 $2</span>');
+}
+// A card's text: one paragraph per line, choice options indented.
+const lines = (text) => String(text || "").split("\n").filter((l) => l.trim())
+	.map((l) => `<p${/^[–•-]/.test(l) ? ' class="opt"' : ""}>${prose(l)}</p>`).join("");
+const firstLine = (text) => String(text || "").split("\n").find((l) => l.trim()) || "";
+const pic = (e, cls) => e.art
+	? `<img class="pic ${cls}" src="${esc(e.art)}" alt="" loading="lazy">`
+	: `<span class="pic ${cls} initial" style="--c:${KIND_COLOR[kindOf(e)]}">${esc(e.name.charAt(0))}</span>`;
+const kindOf = (e) => Object.keys(LISTS).find((k) => BY[k].get(e.id) === e);
+function fact(k, v, sub) { return `<div class="fact"><div class="k">${esc(k)}</div><div class="v">${v}${sub ? ` <small>${sub}</small>` : ""}</div></div>`; }
+function block(title, body) { return body ? `<section class="block"><h3>${esc(title)}</h3>${body}</section>` : ""; }
+const times = (n) => `${n}×`;
+
+function gameCard(c) {
+	return `<div class="gcard" style="--c:${TYPE_COLOR[c.type]}">
+		<div class="top2"><span class="cost">${c.cost}</span><span>${esc(c.type_name)}</span></div>
+		<div class="nm">${esc(c.name)}</div>
+		${c.art ? `<img src="${esc(c.art)}" alt="">` : ""}
+		<div class="tx">${prose(c.text)}</div>
+		<div class="ty">${esc(c.type_name)}</div>
+	</div>`;
+}
+
+// ---------- List rows ----------
+const ROW = {
+	card: (c) => ({ sub: `${c.type_name} · ${firstLine(c.text)}`, end: `<span class="res coin">${c.cost}</span>` }),
+	villain: (v) => ({ sub: firstLine(v.lines.length ? v.lines[0].text : ""), end: `<span class="res heart">${v.hp}</span>` }),
+	darkart: (d) => ({ sub: firstLine(d.text), end: d.copies ? times(d.copies) : "–" }),
+	place: (p) => ({ sub: p.text, end: `Ort ${p.order}` }),
+	hero: (h) => ({ sub: h.text, end: `<span class="res heart">${h.hp}</span>` }),
+	skill: (p) => ({ sub: p.text, end: "" }),
+};
+function row(kind, e) {
+	const r = ROW[kind](e);
+	const here = current && current.kind === kind && current.id === e.id ? ' aria-current="true"' : "";
+	return `<a class="row" href="${href(kind, e.id)}"${here}>${pic(e, "thumb")}<span><span class="nm">${esc(e.name)}</span><span class="sub">${esc(r.sub)}</span></span><span class="end">${r.end}</span></a>`;
+}
+
+// Groups for each section's list, in reading order.
+const cardFilter = { type: "all", where: "all" };
+function groups(kind) {
+	const list = [...LISTS[kind]];
+	if (kind === "card") {
+		const shown = list.filter((c) => (cardFilter.type === "all" || c.type === cardFilter.type)
+			&& (cardFilter.where === "all" || (cardFilter.where === "shop" ? c.shop > 0 : c.starter.length > 0)));
+		return TYPE_ORDER.map((t) => [TYPE_PLURAL[t], shown.filter((c) => c.type === t).sort((a, b) => a.cost - b.cost || byName(a, b))]);
+	}
+	if (kind === "villain") {
+		return [["Endgegner", list.filter((v) => v.boss)],
+			["Bösewichte", list.filter((v) => !v.boss).sort((a, b) => b.hp - a.hp || byName(a, b))]];
+	}
+	if (kind === "place") return [["In Spielreihenfolge", list.sort((a, b) => a.order - b.order)]];
+	return [["", list.sort(byName)]];
+}
+function filterBar(kind) {
+	if (kind !== "card") return "";
+	const btn = (key, value, label) => `<button data-f="${key}" data-v="${value}" aria-pressed="${cardFilter[key] === value}">${label}</button>`;
+	return `<div class="filters">${btn("type", "all", "Alle")}${TYPE_ORDER.map((t) => btn("type", t, TYPE_PLURAL[t])).join("")}</div>
+		<div class="filters">${btn("where", "all", "Überall")}${btn("where", "shop", "Im Markt")}${btn("where", "starter", "In Startdecks")}</div>`;
+}
+function renderList() {
+	const q = query.trim().toLowerCase();
+	let html = "";
+	if (q) {
+		let total = 0;
+		for (const s of SECTIONS) {
+			const hits = LISTS[s.kind].filter((e) => [e.name, e.text, ...(e.lines || []).map((l) => l.text + " " + l.name)]
+				.join(" ").toLowerCase().includes(q)).sort(byName);
+			total += hits.length;
+			if (hits.length) html += `<div class="group">${esc(s.label)}</div>` + hits.map((e) => row(s.kind, e)).join("");
+		}
+		html = `<div class="count">${total} Treffer</div>` + (html || '<div class="empty">Nichts gefunden.</div>');
+	} else {
+		const gs = groups(section.kind);
+		const total = gs.reduce((n, [, l]) => n + l.length, 0);
+		html = filterBar(section.kind) + `<div class="count">${total} ${esc(section.label)}</div>`;
+		for (const [title, list] of gs) {
+			if (!list.length) continue;
+			if (title) html += `<div class="group">${esc(title)} <span class="mono" style="color:var(--faint);font-size:11px">${list.length}</span></div>`;
+			html += list.map((e) => row(section.kind, e)).join("");
+		}
+		if (!total) html += '<div class="empty">Keine Karten mit diesem Filter.</div>';
+	}
+	listEl.innerHTML = html;
+	const cur = listEl.querySelector('[aria-current="true"]');
+	if (cur && !q) cur.scrollIntoView({ block: "nearest" });
+}
+
+// ---------- Detail pages ----------
+function head(e, kind, kindText, meta, portrait) {
+	return `<a class="back" href="#${SECTION_OF[kind].id}">← ${esc(SECTION_OF[kind].label)}</a>
+	<div class="head">${portrait ?? pic(e, "portrait")}<div class="title"><div class="kind">${esc(kindText)}</div><h2>${esc(e.name)}</h2>
+	${meta ? `<div class="meta">${meta}</div>` : ""}</div></div>`;
+}
+const fileLine = (e) => `<div class="file">${esc(e.file)}</div>`;
+
+const DETAIL = {
+	card(c) {
+		const starters = c.starter.map((s) => `${link("hero", s.class)} <span class="mono">${times(s.copies)}</span>`).join(", ");
+		const meta = [`<span class="chip" style="--c:${TYPE_COLOR[c.type]}">${esc(c.type_name)}</span>`,
+			`<span class="chip" style="--c:var(--coin)">kostet ${c.cost}</span>`,
+			c.shop ? `<span class="chip">${times(c.shop)} im Markt</span>` : "",
+			c.passive ? `<span class="chip" style="--c:var(--dark)">Fähigkeit: ${esc(c.passive)}</span>` : ""].join("");
+		const similar = W.cards.filter((o) => o !== c && o.type === c.type && Math.abs(o.cost - c.cost) <= 1).sort((a, b) => a.cost - b.cost || byName(a, b));
+		return head(c, "card", "Karte · " + c.type_name, meta, gameCard(c))
+			+ block("Was sie tut", `<div class="lede">${lines(c.text)}</div>`)
+			+ block("Im Spiel", `<div class="facts">${fact("Kosten", `<span class="res coin">${c.cost}</span>`, "Münzen")}${fact("Typ", esc(c.type_name))}${fact("Im Markt", c.shop ? times(c.shop) : "nein", c.shop ? "Kopien" : "")}${fact("In Startdecks", c.starter.length ? times(c.starter.reduce((n, s) => n + s.copies, 0)) : "nein", c.starter.length ? `bei ${c.starter.length} Helden` : "")}</div>`
+				+ (starters ? `<p class="note">Startdeck von ${starters}</p>` : ""))
+			+ block(`Ähnliche ${TYPE_PLURAL[c.type]}`, similar.length ? `<div class="gallery">${similar.map((o) => tile("card", o)).join("")}</div>` : "")
+			+ fileLine(c);
+	},
+	villain(v) {
+		const meta = [v.boss ? '<span class="badge boss">Endgegner</span>' : "", `<span class="chip" style="--c:var(--heart)">${v.hp} Herz</span>`,
+			v.copies ? `<span class="chip">${times(v.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>'].join("");
+		const items = v.lines.map((l) => `<li><span class="chip" style="--c:${l.kind === "passive" ? "var(--dark)" : "var(--villain)"}">${l.kind === "passive" ? "Immer aktiv" : "Fähigkeit"}</span>${l.name ? `<b>${esc(l.name)}</b>` : ""}<span>${prose(l.text)}</span></li>`).join("");
+		const boss = v.boss ? `<p class="note">Der Endgegner liegt ganz unten im Stapel und kommt als Letzter. Er kann erst angegriffen werden, wenn alle anderen Bösewichte im Spiel besiegt sind.</p>` : "";
+		return head(v, "villain", v.boss ? "Endgegner" : "Bösewicht", meta)
+			+ block("Was er tut", (items ? `<ul class="plain">${items}</ul>` : '<p class="note">Keine Fähigkeiten.</p>') + boss)
+			+ block("Im Spiel", `<div class="facts">${fact("Herzen", `<span class="res heart">${v.hp}</span>`)}${fact("Im Bösewicht-Stapel", v.copies ? times(v.copies) : "nein")}</div>`)
+			+ fileLine(v);
+	},
+	darkart(d) {
+		const meta = d.copies ? `<span class="chip" style="--c:var(--dark)">${times(d.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>';
+		const total = W.dark_arts.reduce((n, o) => n + o.copies, 0);
+		return head(d, "darkart", "Bedrohung", meta)
+			+ block("Was sie tut", `<div class="lede">${lines(d.text)}</div>`)
+			+ block("Im Spiel", `<div class="facts">${fact("Im Stapel", d.copies ? times(d.copies) : "nein", `von ${total} Karten`)}${fact("Chance pro Karte", total ? Math.round(100 * d.copies / total) + " %" : "–")}</div>
+				<p class="note">Wie viele Karten pro Zug aufgedeckt werden, hängt vom <a href="#orte">Ort</a> ab.</p>`)
+			+ fileLine(d);
+	},
+	place(p) {
+		const all = [...W.locations].sort((a, b) => a.order - b.order);
+		const prev = all.find((o) => o.order === p.order - 1), next = all.find((o) => o.order === p.order + 1);
+		return head(p, "place", `Ort ${p.order} von ${all.length}`, `<span class="chip" style="--c:var(--place)">${esc(p.text)}</span>`)
+			+ block("Im Spiel", `<div class="facts">${fact("Verloren bei", `<span class="res token">${p.threshold}</span>`, "Kontrollmarkern")}${fact("Bedrohungen pro Zug", p.dark_arts_per_turn)}${fact("Reihenfolge", `${p.order}.`, p.order === all.length ? "letzter Ort" : "")}</div>`)
+			+ block("Karte", mapView(all, p))
+			+ `<div class="nav2"><span>${prev ? `← ${link("place", prev.id)}` : ""}</span><span>${next ? `${link("place", next.id)} →` : ""}</span></div>`
+			+ fileLine(p);
+	},
+	skill(p) {
+		return head(p, "skill", "Fachgebiet", '<span class="chip" style="--c:var(--spell)">vor dem Spiel wählen</span>')
+			+ block("Was es tut", `<div class="lede">${lines(p.text)}</div>`)
+			+ `<p class="note">Jeder Spieler wählt nach seinem Helden ein Fachgebiet. Jedes gibt es pro Spiel nur einmal.</p>`
+			+ fileLine(p);
+	},
+	hero(h) {
+		const deck = h.deck.map((d) => ({ d, c: BY.card.get(d.card) })).filter((x) => x.c).sort((a, b) => b.d.copies - a.d.copies || byName(a.c, b.c));
+		const cards = deck.reduce((n, x) => n + x.d.copies, 0);
+		const abilities = h.abilities.map((a) => `<li><span class="chip" style="--c:var(--hero)">${esc(a.name)}</span><span>${prose(a.text)}</span></li>`).join("");
+		return head(h, "hero", "Heldenklasse", `<span class="chip" style="--c:var(--heart)">${h.hp} Herz</span><span class="chip">${cards} Karten im Startdeck</span>`)
+			+ (h.text ? `<p class="lede">${prose(h.text)}</p>` : "")
+			+ block("Fähigkeiten", abilities ? `<ul class="plain">${abilities}</ul>` : "")
+			+ block("Startdeck", `<div class="scroll"><table class="data"><tr><th class="n">Anzahl</th><th>Karte</th><th>Typ</th><th class="n">Kosten</th></tr>${deck.map(({ d, c }) => `<tr><td class="n">${times(d.copies)}</td><td><span class="who">${pic(c, "")}${link("card", c.id)}</span></td><td>${esc(c.type_name)}</td><td class="n">${c.cost}</td></tr>`).join("")}</table></div>`)
+			+ fileLine(h);
+	},
+};
+
+// Japan with every location; the one shown is highlighted.
+function mapView(all, here) {
+	if (!W.map) return "";
+	const pts = all.map((p) => ({ p, x: p.map[0] * 100, y: p.map[1] * 100 }));
+	const route = pts.map((q) => `${q.x},${q.y}`).join(" ");
+	return `<div class="map"><img src="${esc(W.map)}" alt="Karte von Japan mit den Orten">
+		<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${route}" fill="none" stroke="#2b2118" stroke-width="0.5" stroke-dasharray="1.6 1.2" vector-effect="non-scaling-stroke" style="stroke-width:3px"/></svg>
+		${pts.map((q) => `<a class="pin${q.p === here ? " here" : ""}" href="${href("place", q.p.id)}" style="left:${q.x}%;top:${q.y}%" title="${esc(q.p.name)}">${q.p.order}</a><span class="label" style="left:${q.x}%;top:calc(${q.y}% + ${q.p === here ? 28 : 20}px)">${esc(q.p.name)}</span>`).join("")}
+	</div>`;
+}
+
+function tile(kind, e) {
+	return `<a class="tile" href="${href(kind, e.id)}">${pic(e, "")}<span class="nm">${esc(e.name)}</span><span class="end">${ROW[kind](e).end}</span></a>`;
+}
+function overview(s) {
+	const list = groups(s.kind).flatMap(([, l]) => l);
+	const extra = s.kind === "place" ? `<section class="block">${mapView([...W.locations].sort((a, b) => a.order - b.order), null)}</section>` : "";
+	return `<div class="intro"><h2>${esc(s.label)}</h2><p>${prose(s.intro)}</p></div>${extra}<div class="gallery" style="margin-top:18px">${list.map((e) => tile(s.kind, e)).join("")}</div>`;
+}
+
+// ---------- Routing ----------
+const listEl = document.getElementById("list"), detailEl = document.getElementById("detail"), tabsEl = document.getElementById("tabs");
+const qEl = document.getElementById("q");
+let section = SECTIONS[0], current = null, query = "";
+
+function route() {
+	const hash = decodeURIComponent(location.hash.slice(1));
+	const dot = hash.indexOf(".");
+	const kind = dot > 0 ? hash.slice(0, dot) : "";
+	const entry = kind && BY[kind] ? BY[kind].get(hash.slice(dot + 1)) : null;
+	if (entry) {
+		current = { kind, id: entry.id };
+		section = SECTION_OF[kind];
+		detailEl.innerHTML = DETAIL[kind](entry);
+		document.title = `${entry.name} – GameForIda Wiki`;
+		document.body.classList.add("reading");
+	} else {
+		current = null;
+		section = SECTIONS.find((s) => s.id === hash) || SECTIONS[0];
+		detailEl.innerHTML = overview(section);
+		document.title = `${section.label} – GameForIda Wiki`;
+		document.body.classList.remove("reading");
+	}
+	tabsEl.innerHTML = SECTIONS.map((s) => `<a href="#${s.id}"${s === section ? ' aria-current="page"' : ""}>${esc(s.label)}<span class="n">${LISTS[s.kind].length}</span></a>`).join("");
+	renderList();
+	if (entry) window.scrollTo({ top: 0 });
+}
+
+listEl.addEventListener("click", (ev) => {
+	const b = ev.target.closest("button[data-f]");
+	if (!b) return;
+	cardFilter[b.dataset.f] = b.dataset.v;
+	renderList();
+});
+qEl.addEventListener("input", () => { query = qEl.value; renderList(); });
+document.addEventListener("keydown", (ev) => {
+	if (ev.key === "/" && document.activeElement !== qEl) { ev.preventDefault(); qEl.focus(); }
+	if (ev.key === "Escape" && document.activeElement === qEl) { qEl.value = ""; query = ""; renderList(); qEl.blur(); }
+});
+const setHeader = () => document.documentElement.style.setProperty("--header", document.getElementById("top").offsetHeight + "px");
+window.addEventListener("resize", setHeader);
+window.addEventListener("hashchange", route);
+
+document.getElementById("stamp").textContent =
+	`${W.cards.length} Karten · ${W.villains.length} Bösewichte · ${W.dark_arts.length} Bedrohungen · ${W.locations.length} Orte · Stand ${W.generated}`;
+setHeader();
+route();
+})();
+</script>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameForIda</title>
+<meta name="description" content="Das kooperative Kartenspiel: herunterladen für Windows und Mac, Anleitung und Wiki.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Same look as the game and its wiki: ink panels, gold, parchment. */
+:root {
+	color-scheme: dark;
+	--ground: #121116;
+	--panel: #1b1a20;
+	--raised: #25232b;
+	--line: #3a3540;
+	--gold: #e2bf6e;
+	--text: #f3ecdc;
+	--muted: #b9ae98;
+	--faint: #7d7468;
+	--paper: #efe4cc;
+	--ink: #2b2118;
+	--vermilion: #c0392b;
+	--display: "Shippori Mincho", "Palatino Linotype", Georgia, serif;
+	--body: "Zen Kaku Gothic New", "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ground); color: var(--text); }
+body { margin: 0; font: 16px/1.6 var(--body); }
+a { color: var(--gold); }
+main { max-width: 820px; margin: 0 auto; padding: 40px 16px 64px; }
+h1 { font: 700 44px/1.1 var(--display); color: var(--gold); margin: 0 0 8px; }
+h2 { font: 600 26px/1.2 var(--display); color: var(--gold); margin: 40px 0 12px; }
+.lead { color: var(--muted); font-size: 18px; margin: 0 0 28px; }
+.downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.download {
+	display: block; padding: 20px 22px; border-radius: 12px; text-decoration: none;
+	background: var(--paper); color: var(--ink); border: 3px solid var(--gold);
+}
+.download:hover { background: #fff7e2; }
+.download strong { display: block; font: 700 24px/1.2 var(--display); }
+.download span { font-size: 14px; color: #5a4a38; }
+.wiki {
+	display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+	margin-top: 14px; padding: 16px 22px; border-radius: 12px; background: var(--raised); border: 1px solid var(--line);
+	color: var(--text); text-decoration: none;
+}
+.wiki:hover { border-color: var(--gold); }
+.wiki strong { font: 600 22px/1.2 var(--display); color: var(--gold); }
+ol, ul { padding-left: 22px; }
+li { margin: 6px 0; }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 22px 14px; }
+code { background: var(--raised); padding: 1px 6px; border-radius: 4px; }
+.small { color: var(--faint); font-size: 14px; margin-top: 40px; }
+</style>
+<main>
+	<h1>GameForIda</h1>
+	<p class="lead">Ein kooperatives Kartenspiel für 1 bis 4 Spieler: Gemeinsam verteidigt ihr Japan gegen die Mongolen.</p>
+
+	<div class="downloads">
+		<a class="download" href="https://github.com/Jan-OleBrakow/GameForIda/releases/latest/download/GameForIda-windows.zip">
+			<strong>Für Windows</strong>
+			<span>GameForIda-windows.zip herunterladen</span>
+		</a>
+		<a class="download" href="https://github.com/Jan-OleBrakow/GameForIda/releases/latest/download/GameForIda-mac.zip">
+			<strong>Für Mac</strong>
+			<span>GameForIda-mac.zip herunterladen</span>
+		</a>
+	</div>
+	<a class="wiki" href="wiki/">
+		<strong>Wiki: alle Karten, Bösewichte und Orte</strong>
+		<span>öffnen →</span>
+	</a>
+
+	<h2>Starten</h2>
+	<div class="box">
+		<p><b>Windows:</b> Zip entpacken, <code>GameForIda.exe</code> doppelklicken. Kommt „Der Computer wurde durch Windows geschützt“: „Weitere Informationen“ → „Trotzdem ausführen“. Fragt Windows nach dem Netzwerk: „Zulassen“.</p>
+		<p><b>Mac:</b> Zip entpacken, <code>GameForIda.app</code> doppelklicken. Beim ersten Mal weigert sich der Mac: Meldung schließen, dann Systemeinstellungen → „Datenschutz &amp; Sicherheit“ → ganz unten „Dennoch öffnen“. Mehr dazu in <code>LIESMICH-Mac.txt</code> im Zip.</p>
+	</div>
+
+	<h2>Zusammen spielen</h2>
+	<div class="box">
+		<ol>
+			<li><a href="https://tailscale.com/download">Tailscale</a> installieren (auf dem Mac aus dem App Store) und anmelden.</li>
+			<li>Den Einladungslink öffnen, den der Gastgeber schickt, und annehmen.</li>
+			<li>Der Gastgeber klickt „Spiel im Heimnetz erstellen“. In seiner Lobby steht „Über Tailscale:“ mit einer Adresse wie <code>100.65.144.84</code>.</li>
+			<li>Alle anderen geben diese Adresse bei „Spielcode oder Adresse“ ein und klicken „Beitreten“.</li>
+		</ol>
+	</div>
+
+	<h2>Tipps</h2>
+	<ul>
+		<li>Fährst du mit der Maus über eine Karte, siehst du ihren ganzen Text.</li>
+		<li>Fährst du über einen Helden, siehst du seine Fähigkeit, sein Fachgebiet und seine Handkarten.</li>
+		<li>Klickst du auf einen Bösewicht, wählst du, wie viele Blitze er bekommt.</li>
+		<li>Passiert etwas von allein, erklärt ein großer Kasten, was es war. Weiter mit „Verstanden“.</li>
+	</ul>
+
+	<p class="small">Ältere Versionen gibt es unter <a href="https://github.com/Jan-OleBrakow/GameForIda/releases">Releases</a>.</p>
+</main>
+</html>
