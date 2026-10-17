@@ -97,6 +97,18 @@ main {
 
 /* List */
 .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.modes { display: flex; gap: 4px; flex-wrap: wrap; }
+.modes button {
+	font: 600 13px/1 var(--body, inherit); padding: 7px 12px; border-radius: 999px; cursor: pointer;
+	color: var(--muted); background: transparent; border: 1px solid var(--line);
+}
+.modes button:hover { color: var(--gold); border-color: var(--gold); }
+.modes button[aria-pressed="true"] { color: var(--ground); background: var(--gold); border-color: var(--gold); }
+.modes button.exp[aria-pressed="true"] { background: #5fa8c9; border-color: #5fa8c9; }
+.news { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--gold); border-radius: 10px; }
+.news h3 { font: 700 16px/1.3 var(--display); color: var(--gold); margin-bottom: 6px; }
+.news p { color: var(--muted); margin-bottom: 8px; }
+.news li { margin: 4px 0 4px 18px; }
 .filters button {
 	font: 12px/1 var(--body); color: var(--muted); background: var(--panel);
 	border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; cursor: pointer;
@@ -138,9 +150,10 @@ a.chip:hover { text-decoration: none; background: color-mix(in srgb, var(--c, va
 	padding: 4px 7px 3px; border-radius: 3px; white-space: nowrap;
 }
 .badge.boss { background: var(--vermilion); color: var(--text); }
+.badge.exp { background: #5fa8c9; color: var(--ground); margin-left: 6px; vertical-align: 2px; }
 .res { white-space: nowrap; font-weight: 500; }
 .res::before { display: inline-block; margin-right: 3px; }
-.res.bolt { color: var(--bolt); } .res.bolt::before { content: "⚡"; }
+.res.bolt { color: var(--bolt); } .res.bolt::before { content: "🗡️"; }
 .res.coin { color: var(--coin); } .res.coin::before { content: ""; width: .8em; height: .8em; border-radius: 50%; background: radial-gradient(circle, transparent 22%, var(--coin) 24%); vertical-align: -1px; }
 .res.heart { color: var(--heart); } .res.heart::before { content: "♥"; }
 .res.token { color: var(--vermilion); } .res.token::before { content: "●"; font-size: .8em; }
@@ -230,6 +243,7 @@ footer code { font-family: var(--mono); color: var(--muted); word-break: break-a
 <header class="top" id="top">
 	<div class="bar">
 		<div class="brand"><h1>GameForIda</h1><span class="stamp" id="stamp"></span></div>
+		<div class="modes" id="modes" role="group" aria-label="Spielmodus"></div>
 		<div class="search"><input id="q" type="search" placeholder="Alles durchsuchen  ( / )" autocomplete="off" aria-label="Wiki durchsuchen"></div>
 	</div>
 	<nav class="tabs" id="tabs" aria-label="Bereiche"></nav>
@@ -260,7 +274,7 @@ const BY = {};
 for (const [kind, list] of Object.entries(LISTS)) BY[kind] = new Map(list.map((e) => [e.id, e]));
 const SECTIONS = [
 	{ id: "karten", kind: "card", label: "Karten", intro: "Alle Karten: die aus dem Markt und die aus den Startdecks der Helden. Karten spielst du aus der Hand; im Markt kaufst du neue mit Münzen." },
-	{ id: "boesewichte", kind: "villain", label: "Bösewichte", intro: "Die Gegner. Bis zu " + W.setup.max_active_villains + " sind gleichzeitig im Spiel. Greife sie mit Blitzen an; wer keine Herzen mehr hat, ist besiegt." },
+	{ id: "boesewichte", kind: "villain", label: "Bösewichte", intro: "Die Gegner. Bis zu " + W.setup.max_active_villains + " sind gleichzeitig im Spiel. Greife sie mit deinem Angriff an; wer keine Herzen mehr hat, ist besiegt." },
 	{ id: "bedrohungen", kind: "darkart", label: "Bedrohungen", intro: "Zu Beginn jedes Zuges werden Bedrohungskarten aufgedeckt. Wie viele, sagt der Ort, an dem ihr gerade kämpft." },
 	{ id: "orte", kind: "place", label: "Orte", intro: "Die Orte, die ihr verteidigt, in Spielreihenfolge. Ist ein Ort voll mit Kontrollmarkern, ist er verloren und ihr zieht zum nächsten. Geht der letzte verloren, gewinnen die Bösewichte." },
 	{ id: "helden", kind: "hero", label: "Helden", intro: "Die Heldenklassen, die man zu Beginn wählt: jede mit eigenen Herzen, Fähigkeiten und Startdeck." },
@@ -282,10 +296,10 @@ const link = (kind, id, label) => {
 	const e = BY[kind] && BY[kind].get(id);
 	return e ? `<a href="${href(kind, id)}">${esc(label ?? e.name)}</a>` : esc(label ?? id);
 };
-// Game words get the game's icons: "2 Blitz", "1 Münze", "3 Herz", "Kontrollmarker".
+// Game words get the game's icons: "2 Angriff", "1 Münze", "3 Herz", "Kontrollmarker".
 function prose(text) {
 	return esc(text)
-		.replace(/(\d+)\s+(Blitz(?:e|en)?)/g, '<span class="res bolt">$1 $2</span>')
+		.replace(/(\d+)\s+(Angriff)/g, '<span class="res bolt">$1 $2</span>')
 		.replace(/(\d+)\s+(Münzen?)/g, '<span class="res coin">$1 $2</span>')
 		.replace(/(\d+)\s+(Herz(?:en)?)/g, '<span class="res heart">$1 $2</span>')
 		.replace(/(\d+)\s+(Kontrollmarker[n]?)/g, '<span class="res token">$1 $2</span>');
@@ -324,13 +338,30 @@ const ROW = {
 function row(kind, e) {
 	const r = ROW[kind](e);
 	const here = current && current.kind === kind && current.id === e.id ? ' aria-current="true"' : "";
-	return `<a class="row" href="${href(kind, e.id)}"${here}>${pic(e, "thumb")}<span><span class="nm">${esc(e.name)}</span><span class="sub">${esc(r.sub)}</span></span><span class="end">${r.end}</span></a>`;
+	return `<a class="row" href="${href(kind, e.id)}"${here}>${pic(e, "thumb")}<span><span class="nm">${esc(e.name)}${expBadge(e)}</span><span class="sub">${esc(r.sub)}</span></span><span class="end">${r.end}</span></a>`;
+}
+
+// The mode switch at the top: everything, only Klassisch, or only what Erweitert adds.
+const MODES = [["all", "Alle"], ["klassisch", "Klassisch"], ["neu", "Neu in Erweitert"]];
+let modeFilter = "all";
+try { modeFilter = localStorage.getItem("gfi-mode") || "all"; } catch (e) { /* storage blocked: start with all */ }
+if (!MODES.some(([id]) => id === modeFilter)) modeFilter = "all";
+const inMode = (e) => modeFilter === "all" || (modeFilter === "neu" ? !!e.expanded : !e.expanded);
+const shownOf = (kind) => LISTS[kind].filter(inMode);
+function renderModes() {
+	document.getElementById("modes").innerHTML = MODES.map(([id, label]) =>
+		`<button data-mode="${id}" class="${id === "neu" ? "exp" : ""}" aria-pressed="${modeFilter === id}">${esc(label)}</button>`).join("");
+}
+// What a chapter brings, from its lobby text (shown above the overview with "Neu in Erweitert").
+function newsBox() {
+	return (W.chapters || []).map((c) => `<section class="news"><h3>Neu in ${esc(c.name)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ""}
+		<ul>${c.news.map((n) => `<li>${prose(n)}</li>`).join("")}</ul></section>`).join("");
 }
 
 // Groups for each section's list, in reading order.
 const cardFilter = { type: "all", where: "all" };
 function groups(kind) {
-	const list = [...LISTS[kind]];
+	const list = shownOf(kind);
 	if (kind === "card") {
 		const shown = list.filter((c) => (cardFilter.type === "all" || c.type === cardFilter.type)
 			&& (cardFilter.where === "all" || (cardFilter.where === "shop" ? c.shop > 0 : c.starter.length > 0)));
@@ -355,7 +386,7 @@ function renderList() {
 	if (q) {
 		let total = 0;
 		for (const s of SECTIONS) {
-			const hits = LISTS[s.kind].filter((e) => [e.name, e.text, ...(e.lines || []).map((l) => l.text + " " + l.name)]
+			const hits = shownOf(s.kind).filter((e) => [e.name, e.text, ...(e.lines || []).map((l) => l.text + " " + l.name)]
 				.join(" ").toLowerCase().includes(q)).sort(byName);
 			total += hits.length;
 			if (hits.length) html += `<div class="group">${esc(s.label)}</div>` + hits.map((e) => row(s.kind, e)).join("");
@@ -370,17 +401,20 @@ function renderList() {
 			if (title) html += `<div class="group">${esc(title)} <span class="mono" style="color:var(--faint);font-size:11px">${list.length}</span></div>`;
 			html += list.map((e) => row(section.kind, e)).join("");
 		}
-		if (!total) html += '<div class="empty">Keine Karten mit diesem Filter.</div>';
+		if (!total) html += `<div class="empty">${modeFilter === "neu" ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</div>`;
 	}
 	listEl.innerHTML = html;
 	const cur = listEl.querySelector('[aria-current="true"]');
 	if (cur && !q) cur.scrollIntoView({ block: "nearest" });
 }
 
+// Content only the Erweitert chapters use (Klassisch doesn't have it).
+const expBadge = (e) => e.expanded ? '<span class="badge exp" title="Nur in Erweitert (Kapitel 1)">Erweitert</span>' : "";
+
 // ---------- Detail pages ----------
 function head(e, kind, kindText, meta, portrait) {
 	return `<a class="back" href="#${SECTION_OF[kind].id}">← ${esc(SECTION_OF[kind].label)}</a>
-	<div class="head">${portrait ?? pic(e, "portrait")}<div class="title"><div class="kind">${esc(kindText)}</div><h2>${esc(e.name)}</h2>
+	<div class="head">${portrait ?? pic(e, "portrait")}<div class="title"><div class="kind">${esc(kindText)}</div><h2>${esc(e.name)}${expBadge(e)}</h2>
 	${meta ? `<div class="meta">${meta}</div>` : ""}</div></div>`;
 }
 const fileLine = (e) => `<div class="file">${esc(e.file)}</div>`;
@@ -395,6 +429,8 @@ const DETAIL = {
 		const similar = W.cards.filter((o) => o !== c && o.type === c.type && Math.abs(o.cost - c.cost) <= 1).sort((a, b) => a.cost - b.cost || byName(a, b));
 		return head(c, "card", "Karte · " + c.type_name, meta, gameCard(c))
 			+ block("Was sie tut", `<div class="lede">${lines(c.text)}</div>`)
+			+ (c.quote ? block("Sagt", `<div class="lede"><i>„${esc(c.quote)}“</i></div>${c.history ? `<p class="file">Ausgedachter Spruch – was wirklich passiert ist, steht darunter.</p>` : ""}`) : "")
+			+ (c.history ? block("Wirklich passiert", `<p>${esc(c.history)}</p>${c.source ? `<p class="file">Quelle: <a href="${esc(c.source_url)}" target="_blank" rel="noopener">${esc(c.source)}</a></p>` : ""}`) : "")
 			+ block("Im Spiel", `<div class="facts">${fact("Kosten", `<span class="res coin">${c.cost}</span>`, "Münzen")}${fact("Typ", esc(c.type_name))}${fact("Im Markt", c.shop ? times(c.shop) : "nein", c.shop ? "Kopien" : "")}${fact("In Startdecks", c.starter.length ? times(c.starter.reduce((n, s) => n + s.copies, 0)) : "nein", c.starter.length ? `bei ${c.starter.length} Helden` : "")}</div>`
 				+ (starters ? `<p class="note">Startdeck von ${starters}</p>` : ""))
 			+ block(`Ähnliche ${TYPE_PLURAL[c.type]}`, similar.length ? `<div class="gallery">${similar.map((o) => tile("card", o)).join("")}</div>` : "")
@@ -404,7 +440,8 @@ const DETAIL = {
 		const meta = [v.boss ? '<span class="badge boss">Endgegner</span>' : "", `<span class="chip" style="--c:var(--heart)">${v.hp} Herz</span>`,
 			v.copies ? `<span class="chip">${times(v.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>'].join("");
 		const items = v.lines.map((l) => `<li><span class="chip" style="--c:${l.kind === "passive" ? "var(--dark)" : "var(--villain)"}">${l.kind === "passive" ? "Immer aktiv" : "Fähigkeit"}</span>${l.name ? `<b>${esc(l.name)}</b>` : ""}<span>${prose(l.text)}</span></li>`).join("");
-		const boss = v.boss ? `<p class="note">Der Endgegner liegt ganz unten im Stapel und kommt als Letzter. Er kann erst angegriffen werden, wenn alle anderen Bösewichte im Spiel besiegt sind.</p>` : "";
+		const boss = v.boss ? `<p class="note">Der Endgegner liegt ganz unten im Stapel und kommt als Letzter. Er kann erst angegriffen werden, wenn alle anderen Bösewichte im Spiel besiegt sind.</p>`
+			: v.second_phase ? `<p class="note">In Erweitert kehrt der Endgegner nach seiner ersten Niederlage so zurück. Wer ihn ein zweites Mal besiegt, gewinnt.</p>` : "";
 		return head(v, "villain", v.boss ? "Endgegner" : "Bösewicht", meta)
 			+ block("Was er tut", (items ? `<ul class="plain">${items}</ul>` : '<p class="note">Keine Fähigkeiten.</p>') + boss)
 			+ block("Im Spiel", `<div class="facts">${fact("Herzen", `<span class="res heart">${v.hp}</span>`)}${fact("Im Bösewicht-Stapel", v.copies ? times(v.copies) : "nein")}</div>`)
@@ -463,7 +500,9 @@ function tile(kind, e) {
 function overview(s) {
 	const list = groups(s.kind).flatMap(([, l]) => l);
 	const extra = s.kind === "place" ? `<section class="block">${mapView([...W.locations].sort((a, b) => a.order - b.order), null)}</section>` : "";
-	return `<div class="intro"><h2>${esc(s.label)}</h2><p>${prose(s.intro)}</p></div>${extra}<div class="gallery" style="margin-top:18px">${list.map((e) => tile(s.kind, e)).join("")}</div>`;
+	const news = modeFilter === "neu" ? newsBox() : "";
+	const empty = list.length ? "" : `<p class="empty" style="margin-top:18px">${modeFilter === "neu" ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</p>`;
+	return `<div class="intro"><h2>${esc(s.label)}</h2><p>${prose(s.intro)}</p></div>${news}${extra}<div class="gallery" style="margin-top:18px">${list.map((e) => tile(s.kind, e)).join("")}</div>${empty}`;
 }
 
 // ---------- Routing ----------
@@ -489,7 +528,8 @@ function route() {
 		document.title = `${section.label} – GameForIda Wiki`;
 		document.body.classList.remove("reading");
 	}
-	tabsEl.innerHTML = SECTIONS.map((s) => `<a href="#${s.id}"${s === section ? ' aria-current="page"' : ""}>${esc(s.label)}<span class="n">${LISTS[s.kind].length}</span></a>`).join("");
+	tabsEl.innerHTML = SECTIONS.map((s) => `<a href="#${s.id}"${s === section ? ' aria-current="page"' : ""}>${esc(s.label)}<span class="n">${shownOf(s.kind).length}</span></a>`).join("");
+	renderModes();
 	renderList();
 	if (entry) window.scrollTo({ top: 0 });
 }
@@ -499,6 +539,13 @@ listEl.addEventListener("click", (ev) => {
 	if (!b) return;
 	cardFilter[b.dataset.f] = b.dataset.v;
 	renderList();
+});
+document.getElementById("modes").addEventListener("click", (ev) => {
+	const b = ev.target.closest("button[data-mode]");
+	if (!b) return;
+	modeFilter = b.dataset.mode;
+	try { localStorage.setItem("gfi-mode", modeFilter); } catch (e) { /* not remembered then */ }
+	route();
 });
 qEl.addEventListener("input", () => { query = qEl.value; renderList(); });
 document.addEventListener("keydown", (ev) => {
