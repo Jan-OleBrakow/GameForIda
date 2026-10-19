@@ -457,10 +457,11 @@ const DETAIL = {
 			+ fileLine(d);
 	},
 	place(p) {
-		const all = [...W.locations].sort((a, b) => a.order - b.order);
+		const all = routeOf(p);
 		const prev = all.find((o) => o.order === p.order - 1), next = all.find((o) => o.order === p.order + 1);
-		return head(p, "place", `Ort ${p.order} von ${all.length}`, `<span class="chip" style="--c:var(--place)">${esc(p.text)}</span>`)
-			+ block("Im Spiel", `<div class="facts">${fact("Verloren bei", `<span class="res token">${p.threshold}</span>`, "Kontrollmarkern")}${fact("Bedrohungen pro Zug", p.dark_arts_per_turn)}${fact("Reihenfolge", `${p.order}.`, p.order === all.length ? "letzter Ort" : "")}</div>`)
+		const walls = p.walls ? fact("Mauer zu Beginn", p.walls, p.walls === 1 ? "Mauerstück" : "Mauerstücke") : "";
+		return head(p, "place", `Ort ${p.order} von ${all.length}${p.expanded ? " · " + p.mode : ""}`, `<span class="chip" style="--c:var(--place)">${esc(p.text)}</span>`)
+			+ block("Im Spiel", `<div class="facts">${fact("Verloren bei", `<span class="res token">${p.threshold}</span>`, "Kontrollmarkern")}${fact("Bedrohungen pro Zug", p.dark_arts_per_turn)}${fact("Reihenfolge", `${p.order}.`, p.order === all.length ? "letzter Ort" : "")}${walls}</div>`)
 			+ block("Karte", mapView(all, p))
 			+ `<div class="nav2"><span>${prev ? `← ${link("place", prev.id)}` : ""}</span><span>${next ? `${link("place", next.id)} →` : ""}</span></div>`
 			+ fileLine(p);
@@ -483,13 +484,19 @@ const DETAIL = {
 	},
 };
 
-// Japan with every location; the one shown is highlighted.
+// The Orte of one mode's route, in order (Klassisch's, or the ones a chapter adds).
+function routeOf(p) {
+	return W.locations.filter((o) => (o.mode || "") === (p.mode || "")).sort((a, b) => a.order - b.order);
+}
+
+// Japan with every location (one dashed route per mode); the one shown is highlighted.
 function mapView(all, here) {
 	if (!W.map) return "";
 	const pts = all.map((p) => ({ p, x: p.map[0] * 100, y: p.map[1] * 100 }));
-	const route = pts.map((q) => `${q.x},${q.y}`).join(" ");
+	const routes = [...new Set(all.map((p) => p.mode || ""))].map((mode) => pts.filter((q) => (q.p.mode || "") === mode)
+		.sort((a, b) => a.p.order - b.p.order).map((q) => `${q.x},${q.y}`).join(" "));
 	return `<div class="map"><img src="${esc(W.map)}" alt="Karte von Japan mit den Orten">
-		<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${route}" fill="none" stroke="#2b2118" stroke-width="0.5" stroke-dasharray="1.6 1.2" vector-effect="non-scaling-stroke" style="stroke-width:3px"/></svg>
+		<svg viewBox="0 0 100 100" preserveAspectRatio="none">${routes.map((route) => `<polyline points="${route}" fill="none" stroke="#2b2118" stroke-width="0.5" stroke-dasharray="1.6 1.2" vector-effect="non-scaling-stroke" style="stroke-width:3px"/>`).join("")}</svg>
 		${pts.map((q) => `<a class="pin${q.p === here ? " here" : ""}" href="${href("place", q.p.id)}" style="left:${q.x}%;top:${q.y}%" title="${esc(q.p.name)}">${q.p.order}</a><span class="label" style="left:${q.x}%;top:calc(${q.y}% + ${q.p === here ? 28 : 20}px)">${esc(q.p.name)}</span>`).join("")}
 	</div>`;
 }
@@ -499,7 +506,7 @@ function tile(kind, e) {
 }
 function overview(s) {
 	const list = groups(s.kind).flatMap(([, l]) => l);
-	const extra = s.kind === "place" ? `<section class="block">${mapView([...W.locations].sort((a, b) => a.order - b.order), null)}</section>` : "";
+	const extra = s.kind === "place" ? `<section class="block">${mapView(shownOf("place"), null)}</section>` : "";
 	const news = modeFilter === "neu" ? newsBox() : "";
 	const empty = list.length ? "" : `<p class="empty" style="margin-top:18px">${modeFilter === "neu" ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</p>`;
 	return `<div class="intro"><h2>${esc(s.label)}</h2><p>${prose(s.intro)}</p></div>${news}${extra}<div class="gallery" style="margin-top:18px">${list.map((e) => tile(s.kind, e)).join("")}</div>${empty}`;
