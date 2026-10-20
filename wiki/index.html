@@ -341,20 +341,25 @@ function row(kind, e) {
 	return `<a class="row" href="${href(kind, e.id)}"${here}>${pic(e, "thumb")}<span><span class="nm">${esc(e.name)}${expBadge(e)}</span><span class="sub">${esc(r.sub)}</span></span><span class="end">${r.end}</span></a>`;
 }
 
-// The mode switch at the top: everything, only Klassisch, or only what Erweitert adds.
-const MODES = [["all", "Alle"], ["klassisch", "Klassisch"], ["neu", "Neu in Erweitert"]];
+// The mode switch at the top: everything, only Klassisch, what Erweitert adds, or what one chapter adds.
+const MODES = [["all", "Alle"], ["klassisch", "Klassisch"], ["neu", "Neu in Erweitert"],
+	...(W.chapters || []).map((c) => ["k" + c.chapter, "Neu in " + c.name.replace(/^Erweitert\s*[–-]\s*/, "")])];
+const chapterOfMode = (id) => /^k\d+$/.test(id) ? Number(id.slice(1)) : 0;
 let modeFilter = "all";
 try { modeFilter = localStorage.getItem("gfi-mode") || "all"; } catch (e) { /* storage blocked: start with all */ }
 if (!MODES.some(([id]) => id === modeFilter)) modeFilter = "all";
-const inMode = (e) => modeFilter === "all" || (modeFilter === "neu" ? !!e.expanded : !e.expanded);
+const inMode = (e) => modeFilter === "all" || (modeFilter === "neu" ? !!e.expanded
+	: chapterOfMode(modeFilter) ? e.chapter === chapterOfMode(modeFilter) : !e.expanded);
+const isNewMode = () => modeFilter === "neu" || chapterOfMode(modeFilter) > 0;
 const shownOf = (kind) => LISTS[kind].filter(inMode);
 function renderModes() {
 	document.getElementById("modes").innerHTML = MODES.map(([id, label]) =>
-		`<button data-mode="${id}" class="${id === "neu" ? "exp" : ""}" aria-pressed="${modeFilter === id}">${esc(label)}</button>`).join("");
+		`<button data-mode="${id}" class="${id === "neu" || chapterOfMode(id) ? "exp" : ""}" aria-pressed="${modeFilter === id}">${esc(label)}</button>`).join("");
 }
 // What a chapter brings, from its lobby text (shown above the overview with "Neu in Erweitert").
 function newsBox() {
-	return (W.chapters || []).map((c) => `<section class="news"><h3>Neu in ${esc(c.name)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ""}
+	const only = chapterOfMode(modeFilter);
+	return (W.chapters || []).filter((c) => !only || c.chapter === only).map((c) => `<section class="news"><h3>Neu in ${esc(c.name)}</h3>${c.summary ? `<p>${esc(c.summary)}</p>` : ""}
 		<ul>${c.news.map((n) => `<li>${prose(n)}</li>`).join("")}</ul></section>`).join("");
 }
 
@@ -401,7 +406,7 @@ function renderList() {
 			if (title) html += `<div class="group">${esc(title)} <span class="mono" style="color:var(--faint);font-size:11px">${list.length}</span></div>`;
 			html += list.map((e) => row(section.kind, e)).join("");
 		}
-		if (!total) html += `<div class="empty">${modeFilter === "neu" ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</div>`;
+		if (!total) html += `<div class="empty">${isNewMode() ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</div>`;
 	}
 	listEl.innerHTML = html;
 	const cur = listEl.querySelector('[aria-current="true"]');
@@ -409,7 +414,7 @@ function renderList() {
 }
 
 // Content only the Erweitert chapters use (Klassisch doesn't have it).
-const expBadge = (e) => e.expanded ? '<span class="badge exp" title="Nur in Erweitert (Kapitel 1)">Erweitert</span>' : "";
+const expBadge = (e) => e.expanded ? `<span class="badge exp" title="${e.chapter ? "Neu in Kapitel " + e.chapter : "Nur in Erweitert"}">${e.chapter ? "Kapitel " + e.chapter : "Erweitert"}</span>` : "";
 
 // ---------- Detail pages ----------
 function head(e, kind, kindText, meta, portrait) {
@@ -507,8 +512,8 @@ function tile(kind, e) {
 function overview(s) {
 	const list = groups(s.kind).flatMap(([, l]) => l);
 	const extra = s.kind === "place" ? `<section class="block">${mapView(shownOf("place"), null)}</section>` : "";
-	const news = modeFilter === "neu" ? newsBox() : "";
-	const empty = list.length ? "" : `<p class="empty" style="margin-top:18px">${modeFilter === "neu" ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</p>`;
+	const news = isNewMode() ? newsBox() : "";
+	const empty = list.length ? "" : `<p class="empty" style="margin-top:18px">${isNewMode() ? "Hier bringt Erweitert nichts Neues." : "Nichts mit diesem Filter."}</p>`;
 	return `<div class="intro"><h2>${esc(s.label)}</h2><p>${prose(s.intro)}</p></div>${news}${extra}<div class="gallery" style="margin-top:18px">${list.map((e) => tile(s.kind, e)).join("")}</div>${empty}`;
 }
 
