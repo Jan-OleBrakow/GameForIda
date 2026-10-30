@@ -480,10 +480,15 @@ const DETAIL = {
 	hero(h) {
 		const deck = h.deck.map((d) => ({ d, c: BY.card.get(d.card) })).filter((x) => x.c).sort((a, b) => b.d.copies - a.d.copies || byName(a.c, b.c));
 		const cards = deck.reduce((n, x) => n + x.d.copies, 0);
-		const abilities = h.abilities.map((a) => `<li><span class="chip" style="--c:var(--hero)">${esc(a.name)}</span><span>${prose(a.text)}</span></li>`).join("");
+		const abilityList = (list) => list.map((a) => `<li><span class="chip" style="--c:var(--hero)">${esc(a.name)}</span><span>${prose(a.text)}</span></li>`).join("");
+		const abilities = abilityList(h.abilities);
+		const erweitert = abilityList(h.expanded_abilities || []);
+		const ownDeck = (h.expanded_deck || []).filter((d) => !h.deck.some((k) => k.card === d.card)).map((d) => BY.card.get(d.card)).filter(Boolean);
 		return head(h, "hero", "Heldenklasse", `<span class="chip" style="--c:var(--heart)">${h.hp} Herz</span><span class="chip">${cards} Karten im Startdeck</span>`)
 			+ (h.text ? `<p class="lede">${prose(h.text)}</p>` : "")
-			+ block("Fähigkeiten", abilities ? `<ul class="plain">${abilities}</ul>` : "")
+			+ block(erweitert ? "Fähigkeiten in Klassisch (wie Jahr 3–6)" : "Fähigkeiten", abilities ? `<ul class="plain">${abilities}</ul>` : "")
+			+ (erweitert ? block("Fähigkeiten in Erweitert (wie Jahr 7)", `<ul class="plain">${erweitert}</ul>`) : "")
+			+ (ownDeck.length ? block("Eigene Startkarten in Erweitert", `<ul class="plain">${ownDeck.map((c) => `<li>${link("card", c.id)}</li>`).join("")}</ul><p class="note">Dazu 7× Grundhaltung. In Klassisch spielt der Held mit dem Startdeck unten.</p>`) : "")
 			+ block("Startdeck", `<div class="scroll"><table class="data"><tr><th class="n">Anzahl</th><th>Karte</th><th>Typ</th><th class="n">Kosten</th></tr>${deck.map(({ d, c }) => `<tr><td class="n">${times(d.copies)}</td><td><span class="who">${pic(c, "")}${link("card", c.id)}</span></td><td>${esc(c.type_name)}</td><td class="n">${c.cost}</td></tr>`).join("")}</table></div>`)
 			+ fileLine(h);
 	},
