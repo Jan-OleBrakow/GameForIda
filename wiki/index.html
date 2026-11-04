@@ -269,7 +269,7 @@ if (!W) {
 }
 
 // ---------- Indexes ----------
-const LISTS = { card: W.cards, villain: W.villains, darkart: W.dark_arts, place: W.locations, hero: W.classes, skill: W.proficiencies || [] };
+const LISTS = { card: W.cards, villain: W.villains, darkart: W.dark_arts, place: W.locations, hero: W.classes, skill: W.proficiencies || [], talisman: W.talismans || [] };
 const BY = {};
 for (const [kind, list] of Object.entries(LISTS)) BY[kind] = new Map(list.map((e) => [e.id, e]));
 const SECTIONS = [
@@ -278,11 +278,12 @@ const SECTIONS = [
 	{ id: "bedrohungen", kind: "darkart", label: "Bedrohungen", intro: "Zu Beginn jedes Zuges werden Bedrohungskarten aufgedeckt. Wie viele, sagt der Ort, an dem ihr gerade kämpft." },
 	{ id: "orte", kind: "place", label: "Orte", intro: "Die Orte, die ihr verteidigt, in Spielreihenfolge. Ist ein Ort voll mit Kontrollmarkern, ist er verloren und ihr zieht zum nächsten. Geht der letzte verloren, gewinnen die Bösewichte." },
 	{ id: "helden", kind: "hero", label: "Helden", intro: "Die Heldenklassen, die man zu Beginn wählt: jede mit eigenen Herzen, Fähigkeiten und Startdeck." },
-	{ id: "fachgebiete", kind: "skill", label: "Fachgebiete", intro: "Nach dem Helden wählt jeder ein Fachgebiet: eine zusätzliche Fähigkeit für das ganze Spiel. Jedes Fachgebiet gibt es pro Spiel nur einmal." },
+	{ id: "fachgebiete", kind: "skill", label: "Fachgebiete", intro: "Nach dem Helden wählt jeder ein Fachgebiet: eine zusätzliche Fähigkeit für das ganze Spiel, in Erweitert sogar zwei. Jedes Fachgebiet gibt es pro Spiel nur einmal." },
+	{ id: "talismane", kind: "talisman", label: "Talismane", intro: "Nur in Erweitert (Kapitel 1), wie die Horkruxe im Brettspiel: Solange ein Talisman übrig ist, kann Kublai Khan keinen Schaden bekommen. Sie kommen einer nach dem anderen. Zerstört sie mit Würfel-Symbolen, oder werft für je 1 Angriff einen Würfel eurer Wahl. Wer gerade am Zug ist, behält die Belohnung." },
 ];
 const SECTION_OF = Object.fromEntries(SECTIONS.map((s) => [s.kind, s]));
-const KIND_LABEL = { card: "Karte", villain: "Bösewicht", darkart: "Bedrohung", place: "Ort", hero: "Held", skill: "Fachgebiet" };
-const KIND_COLOR = { card: "var(--gold)", villain: "var(--villain)", darkart: "var(--dark)", place: "var(--place)", hero: "var(--hero)", skill: "var(--spell)" };
+const KIND_LABEL = { card: "Karte", villain: "Bösewicht", darkart: "Bedrohung", place: "Ort", hero: "Held", skill: "Fachgebiet", talisman: "Talisman" };
+const KIND_COLOR = { card: "var(--gold)", villain: "var(--villain)", darkart: "var(--dark)", place: "var(--place)", hero: "var(--hero)", skill: "var(--spell)", talisman: "var(--villain)" };
 const TYPE_COLOR = { spell: "var(--spell)", item: "var(--item)", ally: "var(--ally)" };
 const TYPE_ORDER = ["spell", "item", "ally"];
 const TYPE_PLURAL = { spell: "Sprüche", item: "Gegenstände", ally: "Verbündete" };
@@ -334,6 +335,7 @@ const ROW = {
 	place: (p) => ({ sub: p.text, end: `Ort ${p.order}` }),
 	hero: (h) => ({ sub: h.text, end: `<span class="res heart">${h.hp}</span>` }),
 	skill: (p) => ({ sub: p.text, end: "" }),
+	talisman: (t) => ({ sub: t.text, end: `${t.order} von ${W.talismans.length}` }),
 };
 function row(kind, e) {
 	const r = ROW[kind](e);
@@ -377,6 +379,7 @@ function groups(kind) {
 			["Bösewichte", list.filter((v) => !v.boss).sort((a, b) => b.hp - a.hp || byName(a, b))]];
 	}
 	if (kind === "place") return [["In Spielreihenfolge", list.sort((a, b) => a.order - b.order)]];
+	if (kind === "talisman") return [["In Spielreihenfolge", list.sort((a, b) => a.order - b.order)]];
 	return [["", list.sort(byName)]];
 }
 function filterBar(kind) {
@@ -471,6 +474,14 @@ const DETAIL = {
 			+ `<div class="nav2"><span>${prev ? `← ${link("place", prev.id)}` : ""}</span><span>${next ? `${link("place", next.id)} →` : ""}</span></div>`
 			+ fileLine(p);
 	},
+	talisman(t) {
+		return head(t, "talisman", `Talisman ${t.order} von ${W.talismans.length}`, `<span class="chip" style="--c:var(--villain)">Zerstören: ${esc(t.needs)}</span>`)
+			+ block("Solange er im Spiel ist", `<div class="lede">${lines(t.text)}</div>`)
+			+ block("So zerstört ihr ihn", `<p>Würfelt ${esc(t.needs)}. Passt ein Würfel-Symbol, dürft ihr es auf den Talisman legen, statt es normal zu nutzen. Oder werft für je 1 Angriff einen Würfel eurer Wahl.</p>`)
+			+ block(`Belohnung: ${esc(t.reward_name)}`, `<div class="lede">${lines(t.reward)}</div>`)
+			+ (t.history ? `<p class="note">Wirklich passiert: ${esc(t.history)}</p>` : "")
+			+ fileLine(t);
+	},
 	skill(p) {
 		return head(p, "skill", "Fachgebiet", '<span class="chip" style="--c:var(--spell)">vor dem Spiel wählen</span>')
 			+ block("Was es tut", `<div class="lede">${lines(p.text)}</div>`)
@@ -478,18 +489,20 @@ const DETAIL = {
 			+ fileLine(p);
 	},
 	hero(h) {
-		const deck = h.deck.map((d) => ({ d, c: BY.card.get(d.card) })).filter((x) => x.c).sort((a, b) => b.d.copies - a.d.copies || byName(a.c, b.c));
+		const deckRows = (list) => list.map((d) => ({ d, c: BY.card.get(d.card) })).filter((x) => x.c).sort((a, b) => b.d.copies - a.d.copies || byName(a.c, b.c));
+		const deckTable = (rows) => `<div class="scroll"><table class="data"><tr><th class="n">Anzahl</th><th>Karte</th><th>Typ</th><th class="n">Kosten</th></tr>${rows.map(({ d, c }) => `<tr><td class="n">${times(d.copies)}</td><td><span class="who">${pic(c, "")}${link("card", c.id)}</span></td><td>${esc(c.type_name)}</td><td class="n">${c.cost}</td></tr>`).join("")}</table></div>`;
+		const deck = deckRows(h.deck);
+		const ownDeck = deckRows(h.expanded_deck || []);
 		const cards = deck.reduce((n, x) => n + x.d.copies, 0);
 		const abilityList = (list) => list.map((a) => `<li><span class="chip" style="--c:var(--hero)">${esc(a.name)}</span><span>${prose(a.text)}</span></li>`).join("");
 		const abilities = abilityList(h.abilities);
 		const erweitert = abilityList(h.expanded_abilities || []);
-		const ownDeck = (h.expanded_deck || []).filter((d) => !h.deck.some((k) => k.card === d.card)).map((d) => BY.card.get(d.card)).filter(Boolean);
 		return head(h, "hero", "Heldenklasse", `<span class="chip" style="--c:var(--heart)">${h.hp} Herz</span><span class="chip">${cards} Karten im Startdeck</span>`)
 			+ (h.text ? `<p class="lede">${prose(h.text)}</p>` : "")
 			+ block(erweitert ? "Fähigkeiten in Klassisch (wie Jahr 3–6)" : "Fähigkeiten", abilities ? `<ul class="plain">${abilities}</ul>` : "")
 			+ (erweitert ? block("Fähigkeiten in Erweitert (wie Jahr 7)", `<ul class="plain">${erweitert}</ul>`) : "")
-			+ (ownDeck.length ? block("Eigene Startkarten in Erweitert", `<ul class="plain">${ownDeck.map((c) => `<li>${link("card", c.id)}</li>`).join("")}</ul><p class="note">Dazu 7× Grundhaltung. In Klassisch spielt der Held mit dem Startdeck unten.</p>`) : "")
-			+ block("Startdeck", `<div class="scroll"><table class="data"><tr><th class="n">Anzahl</th><th>Karte</th><th>Typ</th><th class="n">Kosten</th></tr>${deck.map(({ d, c }) => `<tr><td class="n">${times(d.copies)}</td><td><span class="who">${pic(c, "")}${link("card", c.id)}</span></td><td>${esc(c.type_name)}</td><td class="n">${c.cost}</td></tr>`).join("")}</table></div>`)
+			+ (ownDeck.length ? block("Startdeck in Erweitert", deckTable(ownDeck)) : "")
+			+ block(ownDeck.length ? "Startdeck in Klassisch" : "Startdeck", deckTable(deck))
 			+ fileLine(h);
 	},
 };
