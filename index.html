@@ -2,11 +2,12 @@
 <html lang="de">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GameForIda</title>
+<title>Göttlicher Wind</title>
+<link rel="icon" href="img/icon.png">
 <meta name="description" content="Das kooperative Kartenspiel: herunterladen für Windows und Mac, Anleitung und Wiki.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@600;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
 /* Same look as the game and its wiki: ink panels, gold, parchment. */
 :root {
@@ -22,7 +23,7 @@
 	--paper: #efe4cc;
 	--ink: #2b2118;
 	--vermilion: #c0392b;
-	--display: "Shippori Mincho", "Palatino Linotype", Georgia, serif;
+	--display: "EB Garamond", "Palatino Linotype", Georgia, serif;
 	--body: "Zen Kaku Gothic New", "Segoe UI", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
@@ -53,10 +54,22 @@ li { margin: 6px 0; }
 .box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 22px 14px; }
 code { background: var(--raised); padding: 1px 6px; border-radius: 4px; }
 .small { color: var(--faint); font-size: 14px; margin-top: 40px; }
+.hero {
+	background: linear-gradient(rgba(18,17,22,.25), rgba(18,17,22,.1) 55%, var(--ground)), url(img/hakata.jpg) center 70% / cover;
+	padding: 56px 16px 150px; text-align: center;
+}
+.hero h1 { margin: 0; display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.hero .name { width: min(640px, 78vw); height: auto; }
+.hero .seal { width: clamp(56px, 10vw, 96px); height: auto; transform: rotate(4deg); }
+.hero p { color: var(--text); font: 600 20px/1.4 var(--display); text-shadow: 0 1px 6px #000; margin: 10px 0 0; }
+main { padding-top: 8px; margin-top: -90px; position: relative; }
 </style>
+<header class="hero">
+	<h1><img class="name" src="img/title.png" alt="Göttlicher Wind"><img class="seal" src="img/seal.png" alt="神風" title="神風 – Kamikaze, der göttliche Wind"></h1>
+	<p>Japan gegen die Flotten des Khan – gemeinsam, für 1 bis 4 Spieler</p>
+</header>
 <main>
-	<h1>GameForIda</h1>
-	<p class="lead">Ein kooperatives Kartenspiel für 1 bis 4 Spieler: Gemeinsam verteidigt ihr Japan gegen die Mongolen.</p>
+	<p class="lead">Ein kooperatives Kartenspiel: Gemeinsam verteidigt ihr Japan gegen die Mongolen, in vier Kapiteln von der ersten Flotte bis zur Geisterflotte. (Die Dateien heißen noch GameForIda, so hieß das Spiel früher.)</p>
 
 	<div class="downloads">
 		<a class="download" href="https://github.com/Jan-OleBrakow/GameForIda/releases/latest/download/GameForIda-windows.zip">
@@ -93,7 +106,8 @@ code { background: var(--raised); padding: 1px 6px; border-radius: 4px; }
 	<ul>
 		<li>Fährst du mit der Maus über eine Karte, siehst du ihren ganzen Text.</li>
 		<li>Fährst du über einen Helden, siehst du seine Fähigkeit, sein Fachgebiet und seine Handkarten.</li>
-		<li>Klickst du auf einen Bösewicht, wählst du, wie viele Blitze er bekommt.</li>
+		<li>Klickst du auf einen Bösewicht, wählst du, wie viel Angriff er bekommt.</li>
+		<li>Neu dabei? Im Hauptmenü erklärt „So wird gespielt“ alles auf einer Seite, und im ersten Spiel zeigen kleine Sprechblasen, was du tun kannst.</li>
 		<li>Passiert etwas von allein, erklärt ein großer Kasten, was es war. Weiter mit „Verstanden“.</li>
 	</ul>
 

@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GameForIda Wiki</title>
+<title>Göttlicher Wind – Wiki</title>
 <meta name="description" content="Alle Karten, Bösewichte, Bedrohungen, Orte und Helden des Spiels, gelesen aus seinen Daten.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -242,7 +242,7 @@ footer code { font-family: var(--mono); color: var(--muted); word-break: break-a
 
 <header class="top" id="top">
 	<div class="bar">
-		<div class="brand"><h1>GameForIda</h1><span class="stamp" id="stamp"></span></div>
+		<div class="brand"><h1>Göttlicher Wind</h1><span class="stamp" id="stamp"></span></div>
 		<div class="modes" id="modes" role="group" aria-label="Spielmodus"></div>
 		<div class="search"><input id="q" type="search" placeholder="Alles durchsuchen  ( / )" autocomplete="off" aria-label="Wiki durchsuchen"></div>
 	</div>
@@ -269,7 +269,7 @@ if (!W) {
 }
 
 // ---------- Indexes ----------
-const LISTS = { card: W.cards, villain: W.villains, darkart: W.dark_arts, place: W.locations, hero: W.classes, skill: W.proficiencies || [], talisman: W.talismans || [] };
+const LISTS = { card: W.cards, villain: W.villains, darkart: W.dark_arts, place: W.locations, hero: W.classes, skill: W.proficiencies || [], talisman: W.talismans || [], fire: W.fires || [] };
 const BY = {};
 for (const [kind, list] of Object.entries(LISTS)) BY[kind] = new Map(list.map((e) => [e.id, e]));
 const SECTIONS = [
@@ -280,10 +280,11 @@ const SECTIONS = [
 	{ id: "helden", kind: "hero", label: "Helden", intro: "Die Heldenklassen, die man zu Beginn wählt: jede mit eigenen Herzen, Fähigkeiten und Startdeck." },
 	{ id: "fachgebiete", kind: "skill", label: "Fachgebiete", intro: "Nach dem Helden wählt jeder ein Fachgebiet: eine zusätzliche Fähigkeit für das ganze Spiel, in Erweitert sogar zwei. Jedes Fachgebiet gibt es pro Spiel nur einmal." },
 	{ id: "talismane", kind: "talisman", label: "Talismane", intro: "Nur in Erweitert (Kapitel 1), wie die Horkruxe im Brettspiel: Solange ein Talisman übrig ist, kann Kublai Khan keinen Schaden bekommen. Sie kommen einer nach dem anderen. Zerstört sie mit Würfel-Symbolen, oder werft für je 1 Angriff einen Würfel eurer Wahl. Wer gerade am Zug ist, behält die Belohnung." },
+	{ id: "feuer", kind: "fire", label: "Feuerkette", intro: "Nur in Kapitel 3: Ihr startet geschwächt, und jedes Feuer an der Küste nimmt eine Schwäche weg. Die Feuer brennen der Reihe nach. Geht eines aus, kommt seine Schwäche zurück. Das Flaggschiff bekommt nur Schaden, solange mindestens 3 Feuer brennen." },
 ];
 const SECTION_OF = Object.fromEntries(SECTIONS.map((s) => [s.kind, s]));
-const KIND_LABEL = { card: "Karte", villain: "Bösewicht", darkart: "Bedrohung", place: "Ort", hero: "Held", skill: "Fachgebiet", talisman: "Talisman" };
-const KIND_COLOR = { card: "var(--gold)", villain: "var(--villain)", darkart: "var(--dark)", place: "var(--place)", hero: "var(--hero)", skill: "var(--spell)", talisman: "var(--villain)" };
+const KIND_LABEL = { card: "Karte", villain: "Bösewicht", darkart: "Bedrohung", place: "Ort", hero: "Held", skill: "Fachgebiet", talisman: "Talisman", fire: "Feuer" };
+const KIND_COLOR = { card: "var(--gold)", villain: "var(--villain)", darkart: "var(--dark)", place: "var(--place)", hero: "var(--hero)", skill: "var(--spell)", talisman: "var(--villain)", fire: "var(--gold)" };
 const TYPE_COLOR = { spell: "var(--spell)", item: "var(--item)", ally: "var(--ally)" };
 const TYPE_ORDER = ["spell", "item", "ally"];
 const TYPE_PLURAL = { spell: "Sprüche", item: "Gegenstände", ally: "Verbündete" };
@@ -336,6 +337,7 @@ const ROW = {
 	hero: (h) => ({ sub: h.text, end: `<span class="res heart">${h.hp}</span>` }),
 	skill: (p) => ({ sub: p.text, end: "" }),
 	talisman: (t) => ({ sub: t.text, end: `${t.order} von ${W.talismans.length}` }),
+	fire: (f) => ({ sub: f.reward, end: `${f.cost} Münzen` }),
 };
 function row(kind, e) {
 	const r = ROW[kind](e);
@@ -380,6 +382,7 @@ function groups(kind) {
 	}
 	if (kind === "place") return [["In Spielreihenfolge", list.sort((a, b) => a.order - b.order)]];
 	if (kind === "talisman") return [["In Spielreihenfolge", list.sort((a, b) => a.order - b.order)]];
+	if (kind === "fire") return [["Von Tsushima bis Kamakura", list.sort((a, b) => a.order - b.order)]];
 	return [["", list.sort(byName)]];
 }
 function filterBar(kind) {
@@ -432,6 +435,7 @@ const DETAIL = {
 		const starters = c.starter.map((s) => `${link("hero", s.class)} <span class="mono">${times(s.copies)}</span>`).join(", ");
 		const meta = [`<span class="chip" style="--c:${TYPE_COLOR[c.type]}">${esc(c.type_name)}</span>`,
 			`<span class="chip" style="--c:var(--coin)">kostet ${c.cost}</span>`,
+			c.legendary ? '<span class="badge boss">Legendäre Karte</span>' : "",
 			c.shop ? `<span class="chip">${times(c.shop)} im Markt</span>` : "",
 			c.passive ? `<span class="chip" style="--c:var(--dark)">Fähigkeit: ${esc(c.passive)}</span>` : ""].join("");
 		const similar = W.cards.filter((o) => o !== c && o.type === c.type && Math.abs(o.cost - c.cost) <= 1).sort((a, b) => a.cost - b.cost || byName(a, b));
@@ -445,18 +449,21 @@ const DETAIL = {
 			+ fileLine(c);
 	},
 	villain(v) {
-		const meta = [v.boss ? '<span class="badge boss">Endgegner</span>' : "", `<span class="chip" style="--c:var(--heart)">${v.hp} Herz</span>`,
+		const meta = [v.boss ? '<span class="badge boss">Endgegner</span>' : "", v.leader ? '<span class="badge boss">Anführer</span>' : "",
+			`<span class="chip" style="--c:var(--heart)">${v.hp} Herz</span>`,
 			v.copies ? `<span class="chip">${times(v.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>'].join("");
 		const items = v.lines.map((l) => `<li><span class="chip" style="--c:${l.kind === "passive" ? "var(--dark)" : "var(--villain)"}">${l.kind === "passive" ? "Immer aktiv" : "Fähigkeit"}</span>${l.name ? `<b>${esc(l.name)}</b>` : ""}<span>${prose(l.text)}</span></li>`).join("");
 		const boss = v.boss ? `<p class="note">Der Endgegner liegt ganz unten im Stapel und kommt als Letzter. Er kann erst angegriffen werden, wenn alle anderen Bösewichte im Spiel besiegt sind.</p>`
 			: v.second_phase ? `<p class="note">In Erweitert kehrt der Endgegner nach seiner ersten Niederlage so zurück. Wer ihn ein zweites Mal besiegt, gewinnt.</p>` : "";
-		return head(v, "villain", v.boss ? "Endgegner" : "Bösewicht", meta)
+		return head(v, "villain", v.boss ? "Endgegner" : v.leader ? "Anführer" : "Bösewicht", meta)
 			+ block("Was er tut", (items ? `<ul class="plain">${items}</ul>` : '<p class="note">Keine Fähigkeiten.</p>') + boss)
+			+ (v.history ? block("Wirklich passiert", `<p>${esc(v.history)}</p>${v.source ? `<p class="file">Quelle: <a href="${esc(v.source_url)}" target="_blank" rel="noopener">${esc(v.source)}</a></p>` : ""}`) : "")
 			+ block("Im Spiel", `<div class="facts">${fact("Herzen", `<span class="res heart">${v.hp}</span>`)}${fact("Im Bösewicht-Stapel", v.copies ? times(v.copies) : "nein")}</div>`)
 			+ fileLine(v);
 	},
 	darkart(d) {
-		const meta = d.copies ? `<span class="chip" style="--c:var(--dark)">${times(d.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>';
+		const meta = (d.unstoppable ? '<span class="badge boss">Unaufhaltsam</span>' : "")
+			+ (d.copies ? `<span class="chip" style="--c:var(--dark)">${times(d.copies)} im Stapel</span>` : '<span class="chip">nicht im Stapel</span>');
 		const total = W.dark_arts.reduce((n, o) => n + o.copies, 0);
 		return head(d, "darkart", "Bedrohung", meta)
 			+ block("Was sie tut", `<div class="lede">${lines(d.text)}</div>`)
@@ -481,6 +488,13 @@ const DETAIL = {
 			+ block(`Belohnung: ${esc(t.reward_name)}`, `<div class="lede">${lines(t.reward)}</div>`)
 			+ (t.history ? `<p class="note">Wirklich passiert: ${esc(t.history)}</p>` : "")
 			+ fileLine(t);
+	},
+	fire(f) {
+		return head(f, "fire", `Feuer ${f.order} von ${W.fires.length}`, `<span class="chip" style="--c:var(--gold)">${f.cost} Münzen</span>`)
+			+ (f.weakness ? block(`Solange es nicht brennt: ${esc(f.weakness_name)}`, `<div class="lede">${lines(f.weakness)}</div>`) : "")
+			+ block("Wenn es brennt", `<div class="lede">${lines(f.reward)}</div>`)
+			+ (f.history ? block("Wirklich passiert", `<p>${esc(f.history)}</p>${f.source ? `<p class="file">Quelle: <a href="${esc(f.source_url)}" target="_blank" rel="noopener">${esc(f.source)}</a></p>` : ""}`) : "")
+			+ fileLine(f);
 	},
 	skill(p) {
 		return head(p, "skill", "Fachgebiet", '<span class="chip" style="--c:var(--spell)">vor dem Spiel wählen</span>')
@@ -549,13 +563,13 @@ function route() {
 		current = { kind, id: entry.id };
 		section = SECTION_OF[kind];
 		detailEl.innerHTML = DETAIL[kind](entry);
-		document.title = `${entry.name} – GameForIda Wiki`;
+		document.title = `${entry.name} – Göttlicher Wind Wiki`;
 		document.body.classList.add("reading");
 	} else {
 		current = null;
 		section = SECTIONS.find((s) => s.id === hash) || SECTIONS[0];
 		detailEl.innerHTML = overview(section);
-		document.title = `${section.label} – GameForIda Wiki`;
+		document.title = `${section.label} – Göttlicher Wind Wiki`;
 		document.body.classList.remove("reading");
 	}
 	tabsEl.innerHTML = SECTIONS.map((s) => `<a href="#${s.id}"${s === section ? ' aria-current="page"' : ""}>${esc(s.label)}<span class="n">${shownOf(s.kind).length}</span></a>`).join("");

@@ -1,4 +1,4 @@
-# GameForIda
+# Göttlicher Wind (GameForIda)
 
 Ein kooperatives Kartenspiel für 1 bis 4 Spieler.
 
